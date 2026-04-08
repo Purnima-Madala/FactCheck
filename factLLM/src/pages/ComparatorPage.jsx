@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import ModelComparison from '../components/comparator/ModelComparison';
 import GroundTruth from '../components/comparator/GroundTruth';
 import { queryAIModels } from '../services/mockAPI';
-import './ComparatorPage.css';  // ← Import the CSS file
+import './ComparatorPage.css';
 
 const ComparatorPage = () => {
   const location = useLocation();
@@ -22,24 +22,28 @@ const ComparatorPage = () => {
   ];
 
   useEffect(() => {
-    if (location.state?.presetQuery) {
-      setQuery(location.state.presetQuery);
-      setTimeout(() => {
-        handleSubmit(new Event('submit'));
+    const preset = location.state?.presetQuery;
+    if (preset) {
+      setQuery(preset);
+      const timer = setTimeout(() => {
+        handleSubmit(undefined, preset);
       }, 500);
+      return () => clearTimeout(timer);
     }
   }, [location.state]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!query.trim() || isLoading) return;
+  const handleSubmit = async (e, inputQuery) => {
+    if (e?.preventDefault) e.preventDefault();
+    const trimmedQuery = (inputQuery ?? query).trim();
+    if (!trimmedQuery || isLoading) return;
 
     setIsLoading(true);
     setError(null);
     setResult(null);
-    
+    setQuery(trimmedQuery);
+
     try {
-      const data = await queryAIModels(query);
+      const data = await queryAIModels(trimmedQuery);
       setResult(data);
     } catch (err) {
       setError('Failed to analyze claim. Please try again.');
@@ -52,7 +56,7 @@ const ComparatorPage = () => {
     setQuery(suggestion);
     setShowSuggestions(false);
     setTimeout(() => {
-      handleSubmit(new Event('submit'));
+      handleSubmit(undefined, suggestion);
     }, 100);
   };
 

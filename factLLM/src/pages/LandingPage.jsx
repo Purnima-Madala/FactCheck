@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
-import ComparisonGraph3D from '../components/Background3D/ComparisonGraph3D';
+import ComparisonGraph3D from '../components/3d/ComparisonGraph3D';
 import './LandingPage.css'; // We'll create this
 
 const LandingPage = () => {
