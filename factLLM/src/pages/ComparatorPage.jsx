@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import ModelComparison from '../components/comparator/ModelComparison';
 import GroundTruth from '../components/comparator/GroundTruth';
-import { queryAIModels } from '../services/mockAIService';
+import { queryAIModels } from '../services/mockAPI';
 
 const ComparatorPage = () => {
   const [query, setQuery] = useState('');

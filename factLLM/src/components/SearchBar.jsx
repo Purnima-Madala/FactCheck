@@ -1,11 +1,11 @@
 import { useState } from 'react';
 
-const SearchBar = ({ onSearch, isLoading, disabled }) => {
+const SearchBar = ({ onSearch, isLoading }) => {
   const [input, setInput] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (input.trim() && !isLoading && !disabled) {
+    if (input.trim() && !isLoading) {
       onSearch(input.trim());
     }
   };
@@ -19,13 +19,9 @@ const SearchBar = ({ onSearch, isLoading, disabled }) => {
           placeholder="Enter a claim to fact-check..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          disabled={isLoading || disabled}
+          disabled={isLoading}
         />
-        <button 
-          type="submit" 
-          className="search-button" 
-          disabled={isLoading || disabled}
-        >
+        <button type="submit" className="search-button" disabled={isLoading}>
           {isLoading ? 'Checking...' : 'Check'}
         </button>
       </div>
