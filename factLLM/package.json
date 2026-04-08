@@ -1,7 +1,6 @@
 {
-  "name": "fact-check-frontend",
-  "private": true,
-  "version": "1.0.0",
+  "name": "ai-hallucination-detector",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,17 +8,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "three": "^0.162.0",
-    "@react-three/fiber": "^8.15.16",
-    "@react-three/drei": "^9.105.4",
-    "framer-motion": "^11.2.10"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.30.3"
   },
   "devDependencies": {
-    "@types/react": "^18.3.3",
-    "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react": "^4.3.1",
-    "vite": "^5.3.1"
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "@vitejs/plugin-react": "^4.2.1",
+    "vite": "^5.0.8"
   }
 }

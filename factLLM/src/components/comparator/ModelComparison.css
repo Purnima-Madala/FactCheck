@@ -1,0 +1,132 @@
+.model-comparison {
+  animation: fadeInUp 0.6s ease;
+}
+
+.comparison-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-xl);
+  padding: var(--spacing-md);
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+}
+
+.controls-left {
+  display: flex;
+  gap: var(--spacing-lg);
+}
+
+.stat-badge {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.stat-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.stat-value {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.controls-right {
+  display: flex;
+  gap: var(--spacing-lg);
+}
+
+.sort-control,
+.filter-control {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.sort-control label,
+.filter-control label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.sort-control select,
+.filter-control select {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--border-glass);
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.sort-control select:hover,
+.filter-control select:hover {
+  border-color: var(--primary-cyan);
+}
+
+.models-list {
+  margin-bottom: var(--spacing-xl);
+}
+
+.comparison-insights {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-lg);
+  margin-top: var(--spacing-xl);
+}
+
+.insight-card {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-fast);
+}
+
+.insight-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--primary-cyan);
+  box-shadow: var(--shadow-glow);
+}
+
+.insight-icon {
+  font-size: 2rem;
+}
+
+.insight-content h4 {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin-bottom: var(--spacing-xs);
+}
+
+.insight-content p {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .comparison-controls {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+  
+  .controls-left,
+  .controls-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .comparison-insights {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,104 +1,116 @@
-import { useRef } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { Box, Text, OrbitControls } from '@react-three/drei';
-import * as THREE from 'three';
+import { useEffect, useRef } from 'react';
+import './ComparisonGraph3D.css';
 
-function Bar3D({ position, height, color, label, value }) {
-  const meshRef = useRef();
-  
-  useFrame((state) => {
-    if (meshRef.current) {
-      meshRef.current.scale.y = THREE.MathUtils.lerp(
-        meshRef.current.scale.y,
-        height,
-        0.1
-      );
-    }
-  });
+const ComparisonGraph3D = ({ data }) => {
+  const canvasRef = useRef(null);
 
-  return (
-    <group position={position}>
-      <Box ref={meshRef} args={[0.8, height, 0.8]} position={[0, height / 2, 0]}>
-        <meshStandardMaterial 
-          color={color} 
-          transparent
-          opacity={0.85}
-          metalness={0.1}
-          roughness={0.5}
-          emissive={color}
-          emissiveIntensity={0.1}
-        />
-      </Box>
-      <Text
-        position={[0, height + 0.3, 0]}
-        fontSize={0.2}
-        color="#0f172a"
-        anchorX="center"
-        anchorY="middle"
-        fontWeight="bold"
-      >
-        {value}%
-      </Text>
-      <Text
-        position={[0, -0.3, 0]}
-        fontSize={0.15}
-        color="#475569"
-        anchorX="center"
-        anchorY="middle"
-        fontWeight="500"
-      >
-        {label}
-      </Text>
-    </group>
-  );
-}
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    let animationId;
+    let rotation = 0;
 
-function Scene({ data }) {
-  const groupRef = useRef();
-  
-  useFrame((state) => {
-    if (groupRef.current) {
-      groupRef.current.rotation.y = Math.sin(state.clock.getElapsedTime() * 0.1) * 0.1;
-    }
-  });
+    const resize = () => {
+      canvas.width = canvas.clientWidth;
+      canvas.height = canvas.clientHeight;
+    };
+    resize();
+    window.addEventListener('resize', resize);
 
-  const colors = ['#0ea5e9', '#6366f1', '#8b5cf6', '#10b981'];
-  
-  return (
-    <group ref={groupRef}>
-      <ambientLight intensity={0.6} />
-      <directionalLight position={[10, 10, 5]} intensity={1} />
-      <pointLight position={[5, 5, 5]} intensity={0.5} color="#0ea5e9" />
-      <pointLight position={[-5, 3, -5]} intensity={0.3} color="#8b5cf6" />
+    const drawBar = (x, y, width, height, color, label, value, index, total) => {
+      const perspective = 0.8;
+      const topY = y - height * perspective;
       
-      {data.map((item, index) => (
-        <Bar3D
-          key={index}
-          position={[index * 1.5 - (data.length - 1) * 0.75, 0, 0]}
-          height={item.value / 50}
-          color={colors[index % colors.length]}
-          label={item.label}
-          value={item.value}
-        />
-      ))}
+      // Front face
+      ctx.fillStyle = color;
+      ctx.fillRect(x, y - height, width, height);
       
-      <gridHelper args={[10, 20, '#cbd5e1', '#e2e8f0']} position={[0, -0.01, 0]} />
-    </group>
-  );
-}
+      // Top face (3D effect)
+      ctx.beginPath();
+      ctx.moveTo(x, y - height);
+      ctx.lineTo(x + width * 0.2, y - height - height * 0.2);
+      ctx.lineTo(x + width * 0.8, y - height - height * 0.2);
+      ctx.lineTo(x + width, y - height);
+      ctx.fill();
+      
+      // Right face
+      ctx.fillStyle = `${color}cc`;
+      ctx.beginPath();
+      ctx.moveTo(x + width, y - height);
+      ctx.lineTo(x + width * 0.8, y - height - height * 0.2);
+      ctx.lineTo(x + width * 0.8, y - height * 0.2);
+      ctx.lineTo(x + width, y);
+      ctx.fill();
 
-export default function ComparisonGraph3D({ data }) {
-  return (
-    <div className="graph-container">
-      <div className="graph-title">
-        <span>📊 3D Hallucination Comparison</span>
-      </div>
-      <div style={{ height: '400px' }}>
-        <Canvas camera={{ position: [4, 3, 6], fov: 50 }}>
-          <Scene data={data} />
-          <OrbitControls enableZoom={true} enablePan={true} />
-        </Canvas>
-      </div>
-    </div>
-  );
-}
+      // Label
+      ctx.fillStyle = '#fff';
+      ctx.font = '12px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(label, x + width / 2, y + 20);
+      
+      // Value
+      ctx.fillStyle = color;
+      ctx.font = 'bold 14px Inter, sans-serif';
+      ctx.fillText(`${value}%`, x + width / 2, y - height - 10);
+    };
+
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Background
+      const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+      gradient.addColorStop(0, 'rgba(0, 0, 0, 0.3)');
+      gradient.addColorStop(1, 'rgba(0, 0, 0, 0.5)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const barWidth = canvas.width / (data.length + 1);
+      const maxHeight = canvas.height * 0.6;
+      const startX = barWidth;
+      const baseY = canvas.height - 50;
+
+      data.forEach((item, index) => {
+        const height = (item.value / 100) * maxHeight;
+        const x = startX + index * barWidth;
+        
+        // Color based on value
+        let color;
+        if (item.value <= 20) color = '#00ff88';
+        else if (item.value <= 40) color = '#00f2fe';
+        else if (item.value <= 60) color = '#ff9f43';
+        else color = '#ff3366';
+        
+        drawBar(x, baseY, barWidth - 10, height, color, item.label, item.value, index, data.length);
+      });
+
+      // Draw grid lines
+      ctx.strokeStyle = 'rgba(0, 242, 254, 0.2)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 4; i++) {
+        const y = baseY - (i / 4) * maxHeight;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+        
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.font = '10px Inter, sans-serif';
+        ctx.fillText(`${i * 25}%`, 5, y - 2);
+      }
+
+      rotation += 0.005;
+      animationId = requestAnimationFrame(animate);
+    };
+
+    animate();
+
+    return () => {
+      cancelAnimationFrame(animationId);
+      window.removeEventListener('resize', resize);
+    };
+  }, [data]);
+
+  return <canvas ref={canvasRef} className="comparison-graph-3d" />;
+};
+
+export default ComparisonGraph3D;
