@@ -5,6 +5,7 @@ const MODEL_ID = "anthropic:claude-sonnet";
 export const anthropicAdapter = {
   modelId: MODEL_ID,
   name: "Anthropic Claude Sonnet",
+  isConfigured: Boolean(process.env.ANTHROPIC_API_KEY),
   async fetchResponse(prompt) {
     const startedAt = Date.now();
     const response = await axios.post(

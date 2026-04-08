@@ -1,23 +1,26 @@
 import axios from "axios";
 
-const MODEL_ID = "mistral:mistral-large";
+const MODEL_ID = "nvidia:llama-3.1-8b-instruct";
+const apiKey = process.env.NVIDIA_API_KEY;
+const baseURL = process.env.NVIDIA_API_BASE_URL || "https://integrate.api.nvidia.com/v1";
+const modelId = process.env.NVIDIA_MODEL_ID || "meta/llama-3.1-8b-instruct";
 
-export const mistralAdapter = {
+export const nvidiaAdapter = {
   modelId: MODEL_ID,
-  name: "Mistral Large",
-  isConfigured: Boolean(process.env.MISTRAL_API_KEY),
+  name: "NVIDIA Llama 3.1 8B Instruct",
+  isConfigured: Boolean(apiKey),
   async fetchResponse(prompt) {
     const startedAt = Date.now();
     const response = await axios.post(
-      "https://api.mistral.ai/v1/chat/completions",
+      `${baseURL}/chat/completions`,
       {
-        model: "mistral-large-latest",
+        model: modelId,
         temperature: 0.2,
         messages: [{ role: "user", content: prompt }]
       },
       {
         headers: {
-          Authorization: `Bearer ${process.env.MISTRAL_API_KEY}`,
+          Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json"
         },
         timeout: 60_000

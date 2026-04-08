@@ -1,13 +1,15 @@
 import axios from "axios";
 
 const MODEL_ID = "google:gemini-1.5-pro";
+const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
 export const geminiAdapter = {
   modelId: MODEL_ID,
   name: "Google Gemini 1.5 Pro",
+  isConfigured: Boolean(apiKey),
   async fetchResponse(prompt) {
     const startedAt = Date.now();
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${process.env.GEMINI_API_KEY}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`;
 
     const response = await axios.post(
       url,

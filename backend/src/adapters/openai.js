@@ -5,6 +5,7 @@ const MODEL_ID = "openai:gpt-4o";
 export const openAIAdapter = {
   modelId: MODEL_ID,
   name: "OpenAI GPT-4o",
+  isConfigured: Boolean(process.env.OPENAI_API_KEY),
   async fetchResponse(prompt) {
     const startedAt = Date.now();
     const response = await axios.post(

@@ -2,6 +2,7 @@ export type ArenaModelId =
   | "openai:gpt-4o"
   | "anthropic:claude-sonnet"
   | "google:gemini-1.5-pro"
+  | "nvidia:llama-3.1-8b-instruct"
   | "mistral:mistral-large"
   | "cohere:command-r-plus";
 

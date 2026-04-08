@@ -5,6 +5,7 @@ const MODEL_ID = "cohere:command-r-plus";
 export const cohereAdapter = {
   modelId: MODEL_ID,
   name: "Cohere Command R+",
+  isConfigured: Boolean(process.env.COHERE_API_KEY),
   async fetchResponse(prompt) {
     const startedAt = Date.now();
     const response = await axios.post(

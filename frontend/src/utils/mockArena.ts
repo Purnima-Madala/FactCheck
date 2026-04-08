@@ -80,6 +80,32 @@ const BASELINES: Record<ArenaModelId, Omit<ModelResult, "modelId" | "name" | "co
       tokensUsed: 940
     }
   },
+  "nvidia:llama-3.1-8b-instruct": {
+    response:
+      "The claim is directionally correct, though a few details should be checked against the primary reference.",
+    sources: [
+      {
+        title: "Model response summary",
+        publisher: "Demo Research Notes",
+        url: "https://example.com/nvidia-summary",
+        excerpt: "The answer is plausible but still benefits from a clearer source trail."
+      },
+      {
+        title: "Cross-check note",
+        publisher: "Demo Evidence Hub",
+        url: "https://example.com/cross-check",
+        excerpt: "Supporting context is present, but not enough to remove every uncertainty."
+      }
+    ],
+    metrics: {
+      hallucinationRate: 15,
+      correctnessScore: 86,
+      relevanceScore: 89,
+      confidenceScore: 81,
+      latencyMs: 720,
+      tokensUsed: 810
+    }
+  },
   "mistral:mistral-large": {
     response:
       "The claim is directionally correct, though a few terms should be checked against the original dataset.",

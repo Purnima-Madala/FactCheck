@@ -4,10 +4,12 @@ import { anthropicAdapter } from "./adapters/anthropic.js";
 import { geminiAdapter } from "./adapters/gemini.js";
 import { mistralAdapter } from "./adapters/mistral.js";
 import { cohereAdapter } from "./adapters/cohere.js";
+import { nvidiaAdapter } from "./adapters/nvidia.js";
 import { scoreResponses } from "./engine/scoringEngine.js";
+import { buildMockRawResult, buildRecommendation, getMockModelMeta } from "./mockArena.js";
 
 const adapterRegistry = new Map(
-  [openAIAdapter, anthropicAdapter, geminiAdapter, mistralAdapter, cohereAdapter].map(
+  [openAIAdapter, anthropicAdapter, geminiAdapter, nvidiaAdapter, mistralAdapter, cohereAdapter].map(
     (adapter) => [adapter.modelId, adapter]
   )
 );
@@ -26,70 +28,61 @@ arenaRouter.post("/api/arena/evaluate", async (req, res, next) => {
     }
 
     const selectedModels = Array.isArray(models) && models.length ? models : defaultModelIds;
-    const selectedAdapters = selectedModels
-      .map((modelId) => adapterRegistry.get(modelId))
-      .filter(Boolean);
+    const selectedAdapters = selectedModels.map((modelId) => adapterRegistry.get(modelId)).filter(Boolean);
 
     if (!selectedAdapters.length) {
       res.status(400).json({ error: "No valid models selected." });
       return;
     }
 
-    const settled = await Promise.allSettled(
-      selectedAdapters.map(async (adapter) => {
-        const result = await adapter.fetchResponse(prompt);
-        return {
-          modelId: adapter.modelId,
-          name: adapter.name,
-          ...result
-        };
+    const rawItems = await Promise.all(
+      selectedModels.map(async (modelId) => {
+        const adapter = adapterRegistry.get(modelId);
+
+        if (!adapter) {
+          return buildMockRawResult(modelId, prompt);
+        }
+
+        if (!adapter.isConfigured) {
+          return buildMockRawResult(modelId, prompt);
+        }
+
+        try {
+          const result = await adapter.fetchResponse(prompt);
+          return {
+            modelId: adapter.modelId,
+            name: adapter.name,
+            response: result.text,
+            latencyMs: result.latencyMs,
+            tokensUsed: result.tokensUsed,
+            rawMetadata: result.rawMetadata
+          };
+        } catch (error) {
+          const fallback = buildMockRawResult(modelId, prompt);
+          return {
+            ...fallback,
+            error: error?.message || "Model request failed"
+          };
+        }
       })
     );
 
-    const successful = [];
-    const failed = [];
+    const scored = scoreResponses(rawItems, prompt, referenceAnswer).map((item) => ({
+      ...item,
+      sources: getMockModelMeta(item.modelId).sources
+    }));
 
-    settled.forEach((item, index) => {
-      const adapter = selectedAdapters[index];
-      if (item.status === "fulfilled") {
-        successful.push(item.value);
-      } else {
-        failed.push({
-          modelId: adapter.modelId,
-          name: adapter.name,
-          response: "",
-          metrics: {
-            hallucinationRate: 100,
-            correctnessScore: 0,
-            relevanceScore: 0,
-            confidenceScore: 0,
-            latencyMs: 0,
-            tokensUsed: 0
-          },
-          compositeScore: 0,
-          error: item.reason?.message || "Model request failed"
-        });
-      }
-    });
+    const results = scored.sort((a, b) => b.compositeScore - a.compositeScore);
 
-    const scored = successful.length
-      ? scoreResponses(successful, prompt, referenceAnswer)
-      : [];
-
-    const results = [...scored, ...failed].sort(
-      (a, b) => b.compositeScore - a.compositeScore
-    );
-
-    const winner = scored.length
-      ? scored.reduce((best, current) =>
-          current.compositeScore > best.compositeScore ? current : best
-        ).modelId
-      : "";
+    const winner = results[0]?.modelId || "";
+    const recommendation = buildRecommendation(results, prompt);
 
     res.json({
       results,
       winner,
-      evaluatedAt: new Date().toISOString()
+      evaluatedAt: new Date().toISOString(),
+      recommendedAnswer: recommendation.recommendedAnswer,
+      recommendedSources: recommendation.recommendedSources
     });
   } catch (error) {
     next(error);
