@@ -1,0 +1,220 @@
+You are a senior full-stack engineer. Build a complete, production-grade 
+web application called "NeuralArena" — an AI Hallucination & Quality 
+Benchmarking Dashboard. Here is the full specification:
+
+---
+
+## PROJECT OVERVIEW
+
+NeuralArena is a multi-AI wrapper and evaluation platform. The user types 
+a single prompt, sends it to multiple AI models simultaneously, and sees 
+a side-by-side comparison of their responses with computed quality metrics:
+- Hallucination Rate (factual accuracy scoring)
+- Correctness Score (answer quality)
+- Relevance Score (how on-topic the response is)
+- Confidence Score (model self-certainty heuristic)
+- Response Latency (time to first token / full response)
+- Token Efficiency (answer quality per token used)
+
+---
+
+## TECH STACK
+
+Frontend:
+- Vite + React 18 (TypeScript)
+- Three.js (via @react-three/fiber + @react-three/drei) for 3D hero scene
+- Framer Motion for UI animations and transitions
+- TailwindCSS for layout + utility styling
+- Recharts or Visx for metric visualizations (radar chart, bar chart)
+- Zustand for global state management
+- Axios for API calls
+
+Backend:
+- Node.js + Express.js (ES Modules)
+- Parallel async calls to multiple AI provider APIs using Promise.allSettled
+- A scoring engine module that evaluates responses against each other
+  and against a reference answer (if provided)
+- Rate limiting middleware (express-rate-limit)
+- CORS configured for local dev
+- dotenv for API key management
+
+AI Providers to integrate (each behind an abstraction layer):
+- OpenAI (GPT-4o)
+- Anthropic (Claude Sonnet)
+- Google Gemini (1.5 Pro)
+- Mistral (mistral-large)
+- Cohere (Command R+)
+
+Each provider must be wrapped in a standardized adapter interface:
+  { modelId, name, fetchResponse(prompt): Promise<ModelResponse> }
+where ModelResponse = { text, latencyMs, tokensUsed, rawMetadata }
+
+---
+
+## SYSTEM ARCHITECTURE
+
+/neuralArena
+  /frontend               ← Vite React app
+    /src
+      /components
+        /3d               ← Three.js scene components
+          NeuralOrb.jsx   ← Animated 3D orb representing each AI
+          ArenaScene.jsx  ← Main Three.js canvas
+        /ui
+          PromptInput.jsx
+          ModelCard.jsx   ← Per-model result card with metrics
+          MetricsRadar.jsx← Radar chart comparing all models
+          Leaderboard.jsx ← Ranked table by composite score
+          HallucBadge.jsx ← Visual hallucination risk indicator
+      /store
+        arenaStore.js     ← Zustand store: prompt, results, loading states
+      /hooks
+        useArenaQuery.js  ← Orchestrates API call + state updates
+      /utils
+        scoreFormatter.js ← Normalize scores 0–100 for display
+  /backend                ← Express API server
+    /src
+      /adapters           ← One file per AI provider
+        openai.js
+        anthropic.js
+        gemini.js
+        mistral.js
+        cohere.js
+      /engine
+        scoringEngine.js  ← Hallucination + quality scoring logic
+        metricUtils.js    ← Shared scoring helpers
+      /middleware
+        rateLimiter.js
+        errorHandler.js
+      server.js           ← Entry point
+      routes.js           ← POST /api/arena/evaluate
+
+---
+
+## API CONTRACT
+
+POST /api/arena/evaluate
+Request body: {
+  prompt: string,
+  referenceAnswer?: string,   // optional ground truth
+  models: string[]            // which model IDs to query
+}
+
+Response: {
+  results: [
+    {
+      modelId: string,
+      name: string,
+      response: string,
+      metrics: {
+        hallucinationRate: number,   // 0-100 (lower is better)
+        correctnessScore: number,    // 0-100
+        relevanceScore: number,      // 0-100
+        confidenceScore: number,     // 0-100
+        latencyMs: number,
+        tokensUsed: number
+      },
+      compositeScore: number         // weighted average
+    }
+  ],
+  winner: string,                    // modelId with highest compositeScore
+  evaluatedAt: string                // ISO timestamp
+}
+
+---
+
+## SCORING ENGINE LOGIC
+
+scoringEngine.js must implement:
+
+1. Relevance Score: Use TF-IDF cosine similarity between prompt and 
+   response. No external NLP library — implement from scratch.
+
+2. Hallucination Rate: Cross-reference all model responses. 
+   Sentences that appear in only one model's response and contradict 
+   the majority are flagged. Score = % of flagged sentences.
+
+3. Correctness Score: If referenceAnswer is provided, compute overlap 
+   similarity with response. If not, use inter-model consensus scoring 
+   (responses that agree with the majority get higher scores).
+
+4. Confidence Score: Heuristic — detect hedging phrases ("I think", 
+   "might be", "I'm not sure", "possibly") and reduce score accordingly. 
+   Also penalize for very short responses.
+
+5. Composite Score = 
+   (correctness * 0.35) + (relevance * 0.25) + 
+   ((100 - hallucination) * 0.25) + (confidence * 0.15)
+
+---
+
+## 3D VISUAL DESIGN
+
+ArenaScene.jsx:
+- Dark space-like background (#050510)
+- One glowing 3D orb per AI model, arranged in a circular orbit
+- Each orb has a unique color (OpenAI=cyan, Anthropic=violet, 
+  Gemini=amber, Mistral=emerald, Cohere=rose)
+- On query submission: orbs animate inward toward center (battle start)
+- After results arrive: orbs animate to a leaderboard formation 
+  (winner moves to top/center, larger, brighter)
+- Orb glow intensity = compositeScore (higher score = brighter orb)
+- Add particle trails behind orbs when animating
+- Use drei's <Float> and <Sparkles> components for ambient motion
+
+---
+
+## UI DESIGN
+
+Aesthetic: dark, sci-fi terminal meets luxury dashboard
+- Background: deep navy/black with subtle grid pattern
+- Accent: electric cyan (#00F5FF) for primary highlights
+- Font: "Space Grotesk" for headings, "JetBrains Mono" for metric values
+- Glass-morphism cards for model results (backdrop-filter: blur)
+- Framer Motion: stagger model cards entering after results load
+- Metrics radar chart: one line per model, color-coded
+- Leaderboard: animated rank numbers (count-up animation on load)
+- Mobile responsive layout (stack cards vertically on small screens)
+
+---
+
+## ENVIRONMENT SETUP
+
+.env (backend):
+OPENAI_API_KEY=
+ANTHROPIC_API_KEY=
+GEMINI_API_KEY=
+MISTRAL_API_KEY=
+COHERE_API_KEY=
+PORT=3001
+
+.env (frontend):
+VITE_API_BASE_URL=http://localhost:3001
+
+---
+
+## DEVELOPMENT SCRIPTS
+
+Root package.json should have:
+  "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\""
+  "dev:frontend": "cd frontend && npm run dev"
+  "dev:backend": "cd backend && node --watch src/server.js"
+
+---
+
+## CONSTRAINTS & QUALITY REQUIREMENTS
+
+- All AI calls must be parallel (Promise.allSettled), never sequential
+- Gracefully handle API failures — if one model fails, still return 
+  results for the others with an error state on that model's card
+- No placeholder/mock data — all scores must be genuinely computed
+- Add loading skeletons on model cards while awaiting responses
+- The scoring engine must be a standalone module, 
+  fully unit-testable without API calls
+- Add JSDoc comments to all scoring functions explaining the algorithm
+- Include a README.md with architecture diagram (ASCII), 
+  setup instructions, and explanation of scoring methodology
+
+Begin by generating the full project file tree, then implement each 
+module starting with: backend adapters → scoring engine → API routes → 
+frontend store → UI components → 3D scene.
