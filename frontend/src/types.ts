@@ -8,6 +8,8 @@ export type ArenaModelId =
 
 export interface ModelMetrics {
   hallucinationRate: number;
+  hallucinationFlaggedClaims?: number;
+  hallucinationTotalClaims?: number;
   correctnessScore: number;
   relevanceScore: number;
   confidenceScore: number;
@@ -27,7 +29,12 @@ export interface ModelResult {
   name: string;
   response: string;
   sources: SourceCitation[];
+  sourceMode?: "provider" | "mock";
   metrics: ModelMetrics;
+  basis?: {
+    hallucination: string;
+    correctness: string;
+  };
   compositeScore: number;
   error?: string;
 }
@@ -38,4 +45,9 @@ export interface ArenaResponse {
   evaluatedAt: string;
   recommendedAnswer: string;
   recommendedSources: SourceCitation[];
+  scoringBasis?: {
+    correctness: string;
+    hallucination: string;
+    composite: string;
+  };
 }

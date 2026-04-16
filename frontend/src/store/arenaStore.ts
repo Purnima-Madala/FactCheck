@@ -2,12 +2,10 @@ import { create } from "zustand";
 import type { ArenaModelId, ModelResult } from "../types";
 
 export const MODEL_SELECTION: { id: ArenaModelId; name: string; color: string }[] = [
-  { id: "openai:gpt-4o", name: "OpenAI GPT-4o", color: "#00F5FF" },
-  { id: "anthropic:claude-sonnet", name: "Claude Sonnet", color: "#38bdf8" },
   { id: "google:gemini-1.5-pro", name: "Gemini 1.5 Pro", color: "#f59e0b" },
   { id: "nvidia:llama-3.1-8b-instruct", name: "NVIDIA Llama 3.1 8B", color: "#60a5fa" },
-  { id: "mistral:mistral-large", name: "Mistral Large", color: "#14b8a6" },
-  { id: "cohere:command-r-plus", name: "Cohere Command R+", color: "#94a3b8" }
+  { id: "openai:gpt-4o", name: "OpenAI GPT-4o", color: "#00F5FF" },
+  { id: "anthropic:claude-sonnet", name: "Claude Sonnet", color: "#38bdf8" }
 ];
 
 interface ArenaState {
@@ -53,7 +51,9 @@ export const useArenaStore = create<ArenaState>((set) => ({
       const exists = state.models.includes(modelId);
       const models = exists
         ? state.models.filter((id) => id !== modelId)
-        : [...state.models, modelId];
+        : state.models.length < 4
+          ? [...state.models, modelId]
+          : state.models;
 
       return {
         models: models.length ? models : state.models

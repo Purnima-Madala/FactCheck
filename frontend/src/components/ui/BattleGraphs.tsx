@@ -8,7 +8,8 @@ import {
   ResponsiveContainer,
   Tooltip,
   XAxis,
-  YAxis
+  YAxis,
+  LabelList
 } from "recharts";
 import type { ModelResult } from "../../types";
 import { MODEL_SELECTION } from "../../store/arenaStore";
@@ -16,6 +17,20 @@ import { MODEL_SELECTION } from "../../store/arenaStore";
 interface BattleGraphsProps {
   results: ModelResult[];
 }
+
+const MOCK_QUALITY_BARS = [
+  { name: "GPT-4o", composite: 82, relevance: 84, correctness: 80 },
+  { name: "Claude", composite: 79, relevance: 78, correctness: 81 },
+  { name: "Gemini", composite: 76, relevance: 74, correctness: 77 },
+  { name: "Llama", composite: 71, relevance: 69, correctness: 72 }
+];
+
+const MOCK_EFFICIENCY_TREND = [
+  { name: "Llama", latency: 850, efficiency: 0.88 },
+  { name: "Gemini", latency: 980, efficiency: 0.81 },
+  { name: "Claude", latency: 1180, efficiency: 0.76 },
+  { name: "GPT-4o", latency: 1320, efficiency: 0.74 }
+];
 
 export function BattleGraphs({ results }: BattleGraphsProps) {
   const withFallback = results.length
@@ -54,6 +69,18 @@ export function BattleGraphs({ results }: BattleGraphsProps) {
     })
     .sort((a, b) => a.latency - b.latency);
 
+  const hasRealData = withFallback.some(
+    (result) =>
+      result.compositeScore > 0 ||
+      result.metrics.correctnessScore > 0 ||
+      result.metrics.relevanceScore > 0 ||
+      result.metrics.latencyMs > 0 ||
+      result.metrics.tokensUsed > 0
+  );
+
+  const displayQualityBars = hasRealData ? qualityBars : MOCK_QUALITY_BARS;
+  const displayEfficiencyTrend = hasRealData ? efficiencyTrend : MOCK_EFFICIENCY_TREND;
+
   const bestResult = withFallback[0];
   const secondResult = withFallback[1];
 
@@ -82,9 +109,17 @@ export function BattleGraphs({ results }: BattleGraphsProps) {
         <div className="mt-4 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="h-[290px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={qualityBars}>
+              <BarChart data={displayQualityBars}>
                 <CartesianGrid strokeDasharray="2 4" stroke="rgba(125,145,175,0.18)" />
-                <XAxis dataKey="name" stroke="#64748b" tick={{ fontSize: 11 }} />
+                <XAxis
+                  dataKey="name"
+                  stroke="#64748b"
+                  tick={{ fontSize: 10 }}
+                  interval={0}
+                  angle={-14}
+                  textAnchor="end"
+                  height={52}
+                />
                 <YAxis domain={[0, 100]} stroke="#94a3b8" tick={{ fontSize: 11 }} />
                 <Tooltip
                   cursor={{ fill: "rgba(226, 232, 240, 0.55)" }}
@@ -134,34 +169,18 @@ export function BattleGraphs({ results }: BattleGraphsProps) {
         </div>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <div className="glass h-[290px] rounded-[24px] p-4 md:p-5">
-          <h3 className="mb-3 font-display text-lg text-slate-900">Truth Quality Spectrum</h3>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={qualityBars}>
-              <CartesianGrid strokeDasharray="2 4" stroke="rgba(125,145,175,0.18)" />
-              <XAxis dataKey="name" stroke="#64748b" tick={{ fontSize: 11 }} />
-              <YAxis domain={[0, 100]} stroke="#94a3b8" tick={{ fontSize: 11 }} />
-              <Tooltip
-                cursor={{ fill: "rgba(226, 232, 240, 0.55)" }}
-                contentStyle={{
-                  background: "rgba(255,255,255,0.95)",
-                  border: "1px solid rgba(148,163,184,0.22)",
-                  borderRadius: "10px",
-                  color: "#0f172a"
-                }}
-              />
-              <Bar dataKey="correctness" fill="#93c5fd" radius={[8, 8, 0, 0]} isAnimationActive animationDuration={900} />
-              <Bar dataKey="relevance" fill="#99f6e4" radius={[8, 8, 0, 0]} isAnimationActive animationDuration={1100} />
-              <Bar dataKey="composite" fill="#cbd5e1" radius={[8, 8, 0, 0]} isAnimationActive animationDuration={1300} />
-            </BarChart>
-          </ResponsiveContainer>
+      <div className="glass rounded-[24px] p-4 md:p-5">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h3 className="font-display text-lg text-slate-900">Response Speed vs Truth Efficiency</h3>
+          {!hasRealData ? (
+            <span className="rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] text-slate-600">
+              Demo Data
+            </span>
+          ) : null}
         </div>
-
-        <div className="glass h-[290px] rounded-[24px] p-4 md:p-5">
-          <h3 className="mb-3 font-display text-lg text-slate-900">Response Speed vs Truth Efficiency</h3>
+        <div className="h-[290px]">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={efficiencyTrend}>
+            <AreaChart data={displayEfficiencyTrend}>
               <defs>
                 <linearGradient id="latencyGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#93c5fd" stopOpacity={0.75} />
@@ -173,7 +192,15 @@ export function BattleGraphs({ results }: BattleGraphsProps) {
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="2 4" stroke="rgba(125,145,175,0.18)" />
-              <XAxis dataKey="name" stroke="#64748b" tick={{ fontSize: 11 }} />
+              <XAxis
+                dataKey="name"
+                stroke="#64748b"
+                tick={{ fontSize: 10 }}
+                interval={0}
+                angle={-14}
+                textAnchor="end"
+                height={52}
+              />
               <YAxis stroke="#94a3b8" tick={{ fontSize: 11 }} />
               <Tooltip
                 contentStyle={{
@@ -183,8 +210,12 @@ export function BattleGraphs({ results }: BattleGraphsProps) {
                   color: "#0f172a"
                 }}
               />
-              <Area type="monotone" dataKey="latency" stroke="#93c5fd" fill="url(#latencyGrad)" isAnimationActive animationDuration={1000} />
-              <Area type="monotone" dataKey="efficiency" stroke="#99f6e4" fill="url(#effGrad)" isAnimationActive animationDuration={1200} />
+              <Area type="monotone" dataKey="latency" stroke="#93c5fd" fill="url(#latencyGrad)" isAnimationActive animationDuration={1000}>
+                <LabelList dataKey="latency" position="top" fontSize={10} fill="#64748b" />
+              </Area>
+              <Area type="monotone" dataKey="efficiency" stroke="#99f6e4" fill="url(#effGrad)" isAnimationActive animationDuration={1200}>
+                <LabelList dataKey="efficiency" position="top" fontSize={10} fill="#0f766e" />
+              </Area>
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -194,5 +225,14 @@ export function BattleGraphs({ results }: BattleGraphsProps) {
 }
 
 function shortName(name: string) {
-  return name.replace("OpenAI ", "").replace("Anthropic ", "").replace("Google ", "").replace("Cohere ", "");
+  const compact = name
+    .replace("OpenAI ", "")
+    .replace("Anthropic ", "")
+    .replace("Google ", "")
+    .replace("NVIDIA ", "")
+    .replace("Cohere ", "")
+    .replace(" 1.5 Pro", "")
+    .replace(" 3.1 8B", "");
+
+  return compact.length > 10 ? `${compact.slice(0, 10)}…` : compact;
 }

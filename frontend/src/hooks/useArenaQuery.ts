@@ -1,7 +1,6 @@
 import axios from "axios";
 import { useCallback } from "react";
 import { useArenaStore } from "../store/arenaStore";
-import { buildMockArenaResponse } from "../utils/mockArena";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001";
 
@@ -32,14 +31,14 @@ export function useArenaQuery() {
         models
       });
 
-      const normalized = data?.results?.length
-        ? data
-        : buildMockArenaResponse(prompt, referenceAnswer.trim(), models);
+      if (!data?.results?.length) {
+        setError("No results returned by backend. Check API keys and selected models.");
+        return;
+      }
 
-      setEvaluation(normalized);
+      setEvaluation(data);
     } catch {
-      const fallback = buildMockArenaResponse(prompt, referenceAnswer.trim(), models);
-      setEvaluation(fallback);
+      setError("Evaluation failed. Backend did not return live results.");
     } finally {
       setLoading(false);
     }

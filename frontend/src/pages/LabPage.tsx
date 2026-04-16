@@ -1,22 +1,14 @@
 import { motion } from "framer-motion";
-import { useEffect, useRef } from "react";
-import { ArenaScene } from "../components/3d/ArenaScene";
+import { useMemo } from "react";
 import { BattleGraphs } from "../components/ui/BattleGraphs";
 import { Leaderboard } from "../components/ui/Leaderboard";
 import { MetricsRadar } from "../components/ui/MetricsRadar";
 import { ModelCard } from "../components/ui/ModelCard";
 import { PromptInput } from "../components/ui/PromptInput";
-import { useArenaQuery } from "../hooks/useArenaQuery";
 import { useArenaStore } from "../store/arenaStore";
-
-const DEMO_PROMPT = "A majority of online sources say this product is the safest option for daily use.";
-const DEMO_REFERENCE = "The safest option should be the one with the strongest evidence, least ambiguity, and clear source support.";
 
 export default function LabPage() {
   const {
-    prompt,
-    setPrompt,
-    setReferenceAnswer,
     results,
     loading,
     winner,
@@ -24,25 +16,15 @@ export default function LabPage() {
     recommendedAnswer,
     recommendedSources
   } = useArenaStore();
-  const { runEvaluation } = useArenaQuery();
-  const seededDemo = useRef(false);
 
-  const cards = loading && results.length === 0 ? [1, 2, 3, 4, 5] : results;
+  const cards = loading && results.length === 0 ? [1, 2, 3, 4] : results;
   const winnerName = results.find((item) => item.modelId === winner)?.name || "No winner yet";
   const runnerUp = results[1]?.name || "Pending";
   const bestScore = results[0]?.compositeScore ?? 0;
-  const lowestLatency = [...results].sort((left, right) => left.metrics.latencyMs - right.metrics.latencyMs)[0];
-
-  useEffect(() => {
-    if (seededDemo.current || loading || results.length > 0 || prompt.trim()) {
-      return;
-    }
-
-    seededDemo.current = true;
-    setPrompt(DEMO_PROMPT);
-    setReferenceAnswer(DEMO_REFERENCE);
-    void runEvaluation();
-  }, [loading, prompt, results.length, runEvaluation, setPrompt, setReferenceAnswer]);
+  const lowestLatency = useMemo(
+    () => [...results].sort((left, right) => left.metrics.latencyMs - right.metrics.latencyMs)[0],
+    [results]
+  );
 
   return (
     <div className="space-y-8 md:space-y-10">
@@ -54,21 +36,21 @@ export default function LabPage() {
         <div className="grid gap-8 xl:grid-cols-[1.25fr_0.75fr]">
           <div className="space-y-5">
             <p className="inline-flex rounded-full border border-sky-200/70 bg-sky-50/80 px-3 py-1 text-xs uppercase tracking-[0.16em] text-sky-800">
-              Mock report preview
+              Live evaluation report
             </p>
             <h1 className="max-w-3xl font-display text-3xl font-bold leading-tight text-slate-900 md:text-5xl">
               A clean fact-check workspace with the final answer shown first.
             </h1>
             <p className="max-w-2xl text-sm leading-7 text-slate-600 md:text-base">
-              Mock models are compared side-by-side with evidence snippets, ranked bars, and a final trustable answer.
-              The layout is built to feel like a polished research report rather than a noisy dashboard.
+              Models are compared side-by-side with evidence snippets, ranked bars, and a final trustable answer.
+              Run an evaluation to populate this report with real outputs.
             </p>
 
             <div className="flex flex-wrap gap-3 text-sm text-slate-700">
               <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5">Top result: {winnerName}</span>
               <span className="rounded-full border border-teal-200 bg-teal-50 px-3 py-1.5">Runner-up: {runnerUp}</span>
               <span className="rounded-full border border-stone-200 bg-stone-50 px-3 py-1.5">
-                Updated: {evaluatedAt || "Auto demo"}
+                Updated: {evaluatedAt || "Not evaluated yet"}
               </span>
             </div>
           </div>
@@ -81,7 +63,7 @@ export default function LabPage() {
           >
             <p className="text-xs uppercase tracking-[0.16em] text-sky-700">Final answer</p>
             <p className="mt-3 text-lg leading-8 text-slate-800 md:text-xl">
-              {recommendedAnswer || "Loading demo recommendation..."}
+              {recommendedAnswer || "Run evaluation to generate the final answer."}
             </p>
             <div className="mt-5 grid grid-cols-2 gap-3 text-sm text-slate-600">
               <SummaryPill label="Composite" value={bestScore ? bestScore.toFixed(2) : "--"} tone="sky" />
@@ -94,17 +76,16 @@ export default function LabPage() {
       <section className="grid gap-4 md:grid-cols-3">
         <StatCard label="Best Composite" value={bestScore ? `${bestScore.toFixed(2)}` : "--"} note="Higher is better" />
         <StatCard label="Fastest Model" value={lowestLatency ? lowestLatency.name : "--"} note="Lowest latency" />
-        <StatCard label="Status" value={loading ? "Building demo report" : "Mock comparison ready"} note="Auto-generated data" />
+        <StatCard label="Status" value={loading ? "Evaluating models" : "Awaiting evaluation"} note="Real outputs only" />
       </section>
 
-      <div className="grid gap-7 xl:grid-cols-[0.96fr_1.04fr] xl:gap-8">
+      <div className="grid gap-7 xl:grid-cols-[1fr_1fr] xl:gap-8">
         <div className="space-y-7">
           <Leaderboard results={results} />
           <MetricsRadar results={results} />
         </div>
-        <div className="space-y-7 xl:sticky xl:top-24 xl:self-start">
+        <div className="space-y-7">
           <PromptInput />
-          <ArenaScene results={results} loading={loading} winner={winner} />
         </div>
       </div>
 

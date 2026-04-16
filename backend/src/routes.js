@@ -67,10 +67,16 @@ arenaRouter.post("/api/arena/evaluate", async (req, res, next) => {
       })
     );
 
-    const scored = scoreResponses(rawItems, prompt, referenceAnswer).map((item) => ({
-      ...item,
-      sources: getMockModelMeta(item.modelId).sources
-    }));
+    const scored = scoreResponses(rawItems, prompt, referenceAnswer).map((item) => {
+      const raw = rawItems.find((entry) => entry.modelId === item.modelId);
+      const providerSources = extractSourcesFromMetadata(raw?.rawMetadata);
+
+      return {
+        ...item,
+        sources: providerSources.length ? providerSources : getMockModelMeta(item.modelId).sources,
+        sourceMode: providerSources.length ? "provider" : "mock"
+      };
+    });
 
     const results = scored.sort((a, b) => b.compositeScore - a.compositeScore);
 
@@ -82,9 +88,45 @@ arenaRouter.post("/api/arena/evaluate", async (req, res, next) => {
       winner,
       evaluatedAt: new Date().toISOString(),
       recommendedAnswer: recommendation.recommendedAnswer,
-      recommendedSources: recommendation.recommendedSources
+      recommendedSources: recommendation.recommendedSources,
+      scoringBasis: {
+        correctness: referenceAnswer
+          ? "Compared against your reference answer using token-overlap similarity."
+          : "Compared against cross-model consensus when no reference answer is provided.",
+        hallucination:
+          "Estimated from unique claims that contradict consensus statements across model outputs.",
+        composite:
+          "Composite = correctness 35% + relevance 25% + factual safety (100-hallucination) 25% + confidence 15%."
+      }
     });
   } catch (error) {
     next(error);
   }
 });
+
+function extractSourcesFromMetadata(rawMetadata) {
+  if (!rawMetadata || rawMetadata.mocked) {
+    return [];
+  }
+
+  const chunks = rawMetadata.candidates?.[0]?.groundingMetadata?.groundingChunks;
+  if (!Array.isArray(chunks)) {
+    return [];
+  }
+
+  return chunks
+    .map((chunk) => {
+      const web = chunk?.web;
+      if (!web?.uri) {
+        return null;
+      }
+
+      return {
+        title: web.title || "Provider citation",
+        publisher: "Provider metadata",
+        url: web.uri,
+        excerpt: "Citation returned directly by model provider metadata."
+      };
+    })
+    .filter(Boolean);
+}

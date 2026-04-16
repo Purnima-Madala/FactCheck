@@ -13,7 +13,7 @@ import {
  * @param {Array<{modelId: string, name: string, response: string, latencyMs: number, tokensUsed: number, rawMetadata: unknown}>} items
  * @param {string} prompt
  * @param {string | undefined} referenceAnswer
- * @returns {Array<{modelId: string, name: string, response: string, metrics: {hallucinationRate: number, correctnessScore: number, relevanceScore: number, confidenceScore: number, latencyMs: number, tokensUsed: number}, compositeScore: number}>}
+ * @returns {Array<{modelId: string, name: string, response: string, metrics: {hallucinationRate: number, hallucinationFlaggedClaims: number, hallucinationTotalClaims: number, correctnessScore: number, relevanceScore: number, confidenceScore: number, latencyMs: number, tokensUsed: number}, basis: {hallucination: string, correctness: string}, compositeScore: number}>}
  */
 export function scoreResponses(items, prompt, referenceAnswer) {
   const promptTokens = tokenize(prompt);
@@ -34,11 +34,12 @@ export function scoreResponses(items, prompt, referenceAnswer) {
       100
     );
 
-    const hallucinationRate = computeHallucinationRate(
+    const hallucinationStats = computeHallucinationRate(
       sentenceMatrix[index],
       sentenceFrequency,
       consensusSentences
     );
+    const hallucinationRate = hallucinationStats.rate;
 
     const correctnessScore = referenceAnswer
       ? clamp(
@@ -65,11 +66,17 @@ export function scoreResponses(items, prompt, referenceAnswer) {
       response: item.response,
       metrics: {
         hallucinationRate: round2(hallucinationRate),
+        hallucinationFlaggedClaims: hallucinationStats.flagged,
+        hallucinationTotalClaims: hallucinationStats.total,
         correctnessScore: round2(correctnessScore),
         relevanceScore: round2(relevanceScore),
         confidenceScore: round2(confidenceScore),
         latencyMs: item.latencyMs,
         tokensUsed: item.tokensUsed
+      },
+      basis: {
+        hallucination: buildHallucinationBasis(hallucinationStats),
+        correctness: buildCorrectnessBasis(referenceAnswer, responseTokens)
       },
       compositeScore: round2(compositeScore)
     };
@@ -81,11 +88,16 @@ export function scoreResponses(items, prompt, referenceAnswer) {
  * @param {string[]} modelSentences
  * @param {Map<string, number>} sentenceFrequency
  * @param {string[]} consensusSentences
- * @returns {number}
+ * @returns {{rate: number, flagged: number, total: number, consensusCount: number}}
  */
 export function computeHallucinationRate(modelSentences, sentenceFrequency, consensusSentences) {
   if (!modelSentences.length) {
-    return 100;
+    return {
+      rate: 100,
+      flagged: 0,
+      total: 0,
+      consensusCount: consensusSentences.length
+    };
   }
 
   let flagged = 0;
@@ -107,7 +119,12 @@ export function computeHallucinationRate(modelSentences, sentenceFrequency, cons
     }
   }
 
-  return (flagged / modelSentences.length) * 100;
+  return {
+    rate: (flagged / modelSentences.length) * 100,
+    flagged,
+    total: modelSentences.length,
+    consensusCount: consensusSentences.length
+  };
 }
 
 /**
@@ -179,4 +196,17 @@ function clamp(value, min, max) {
 
 function round2(value) {
   return Math.round(value * 100) / 100;
+}
+
+function buildHallucinationBasis(stats) {
+  const summary = `${stats.flagged}/${stats.total || 0} unique claims contradicted consensus statements.`;
+  return `${summary} Consensus pool size: ${stats.consensusCount}. Lower contradiction means lower hallucination.`;
+}
+
+function buildCorrectnessBasis(referenceAnswer, responseTokens) {
+  if (referenceAnswer) {
+    return `Correctness is token-overlap similarity against your reference answer (${responseTokens.length} response tokens evaluated).`;
+  }
+
+  return "Correctness is consensus similarity against the other model responses when no reference answer is provided.";
 }

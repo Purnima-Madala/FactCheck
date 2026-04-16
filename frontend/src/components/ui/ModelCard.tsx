@@ -39,12 +39,38 @@ export function ModelCard({ result, loading = false }: ModelCardProps) {
         <HallucBadge hallucinationRate={result.metrics.hallucinationRate} />
       </div>
 
-      <p className="mb-4 max-h-28 overflow-auto text-sm leading-7 text-slate-700">{result.error || result.response}</p>
+      <div className="mb-4 rounded-2xl border border-rose-100 bg-rose-50/60 p-3">
+        <div className="mb-2 flex items-center justify-between gap-2 text-[11px] uppercase tracking-[0.14em]">
+          <span className="text-rose-700/80">Hallucination Meter</span>
+          <span className="font-mono text-rose-700">{toFixedScore(result.metrics.hallucinationRate)}%</span>
+        </div>
+        <div className="h-2.5 overflow-hidden rounded-full bg-rose-100">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-emerald-300 via-amber-300 to-rose-400"
+            style={{ width: `${Math.max(2, Math.min(100, result.metrics.hallucinationRate))}%` }}
+          />
+        </div>
+        <p className="mt-2 text-[11px] text-slate-600">
+          Flagged claims: {result.metrics.hallucinationFlaggedClaims ?? 0}/
+          {result.metrics.hallucinationTotalClaims ?? 0}
+        </p>
+      </div>
+
+      <div className="mb-4 rounded-2xl border border-slate-200 bg-white/70 p-3">
+        <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">Real Model Response</p>
+        <p className="mt-2 max-h-32 overflow-auto text-sm leading-7 text-slate-700">{result.response || "No response returned by backend."}</p>
+        {result.error ? <p className="mt-2 text-xs text-rose-600">Model error: {result.error}</p> : null}
+      </div>
 
       <div className="mb-4 space-y-2 rounded-2xl border border-sky-100 bg-sky-50/60 p-3">
-        <p className="text-[10px] uppercase tracking-[0.16em] text-sky-700/70">Sources</p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[10px] uppercase tracking-[0.16em] text-sky-700/70">Referenced Sources</p>
+          <span className="rounded-full bg-white px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-slate-500">
+            {result.sourceMode === "provider" ? "provider" : "fallback"}
+          </span>
+        </div>
         <div className="space-y-2">
-          {result.sources.map((source) => (
+          {result.sources.length ? result.sources.map((source) => (
             <a
               key={source.url}
               href={source.url}
@@ -58,8 +84,20 @@ export function ModelCard({ result, loading = false }: ModelCardProps) {
               </div>
               <p className="mt-1 text-[11px] leading-5 text-slate-500">{source.excerpt}</p>
             </a>
-          ))}
+          )) : <p className="rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-[11px] text-slate-500">No provider references returned for this response.</p>}
         </div>
+      </div>
+
+      <div className="mb-4 space-y-2 rounded-2xl border border-teal-100 bg-teal-50/55 p-3">
+        <p className="text-[10px] uppercase tracking-[0.16em] text-teal-700/70">Scoring Basis</p>
+        <p className="text-[11px] leading-5 text-slate-600">
+          <span className="font-semibold text-slate-700">Hallucination:</span>{" "}
+          {result.basis?.hallucination || "Estimated by checking contradictory unique claims against consensus."}
+        </p>
+        <p className="text-[11px] leading-5 text-slate-600">
+          <span className="font-semibold text-slate-700">Correctness:</span>{" "}
+          {result.basis?.correctness || "Estimated by reference overlap or cross-model consensus similarity."}
+        </p>
       </div>
 
       <div className="grid grid-cols-2 gap-3 font-mono text-xs text-slate-600">

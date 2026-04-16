@@ -19,6 +19,13 @@ export function PromptInput() {
       <p className="mb-5 text-slate-600">
         Benchmark multiple models side-by-side to find the most trustworthy response.
       </p>
+      <p className="mb-5 rounded-2xl border border-sky-100 bg-white/70 px-3 py-2 text-xs leading-5 text-slate-600">
+        Basis used: <span className="font-semibold">Correctness</span> compares against your reference answer (or
+        cross-model consensus), and <span className="font-semibold">Hallucination</span> is estimated from claims that
+        contradict consensus statements.
+      </p>
+
+      <p className="mb-4 text-xs text-slate-500">Model set trimmed for clarity: 4 max to keep charts readable.</p>
 
       <textarea
         value={prompt}
@@ -36,7 +43,7 @@ export function PromptInput() {
         placeholder="Optional reference answer (known truth baseline)"
       />
 
-      <div className="mt-5 grid gap-2.5 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="mt-5 grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
         {MODEL_SELECTION.map((model) => (
           <label
             key={model.id}
